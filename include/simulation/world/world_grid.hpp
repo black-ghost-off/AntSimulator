@@ -54,10 +54,22 @@ struct ColonyCell
 
 struct WorldCell
 {
+	// Wall materials
+	static constexpr uint32_t wall_none = 0;
+	static constexpr uint32_t wall_rock = 1;
+	static constexpr uint32_t wall_dirt = 2;
+
 	ColonyCell markers[Conf::MAX_COLONIES_COUNT];
 	// Food quantity in the cell
 	uint32_t food;
+	// Wall material (none / rock / dirt)
 	uint32_t wall;
+	// Digging state (tunnels dug by ants)
+	uint8_t dig_hits       = 0;
+	bool    indestructible = false;
+	// Scent emitted by food, it diffuses to nearby cells and is
+	// strongly (but not fully) attenuated by walls
+	float food_scent       = 0.0f;
 	// Density of ants at a certain point
 	float density;
 	// Dist to wall
@@ -92,6 +104,24 @@ struct WorldCell
 		const bool last = (food <= 1.0f);
 		food = (food - bool(food)) * (!last);
 		return last;
+	}
+
+	// One dig attempt, returns true if the wall got removed.
+	// Dirt is much softer than rock.
+	bool dig()
+	{
+		static constexpr uint8_t rock_resistance = 10;
+		static constexpr uint8_t dirt_resistance = 3;
+		if (!wall || indestructible) {
+			return false;
+		}
+		const uint8_t resistance = (wall == wall_dirt) ? dirt_resistance : rock_resistance;
+		if (++dig_hits >= resistance) {
+			wall     = wall_none;
+			dig_hits = 0;
+			return true;
+		}
+		return false;
 	}
     
     AntRef getEnemy(uint8_t team)
@@ -223,6 +253,36 @@ struct WorldGrid : public Grid<WorldCell>
 	{
 		for (WorldCell& c : cells) {
 			c.update(dt);
+		}
+		updateFoodScent();
+	}
+
+	// Propagate food scent by max-relaxation. Each frame every cell takes the
+	// strongest neighboring scent, faded by the medium: air lets it travel far,
+	// dirt muffles it a little, rock muffles it strongly (but a faint trace
+	// still gets through, giving ants a direction to dig in). Without a food
+	// source the field self-decays.
+	void updateFoodScent()
+	{
+		static constexpr float air_scent_fade  = 0.95f;
+		static constexpr float dirt_scent_fade = 0.85f;
+		static constexpr float rock_scent_fade = 0.60f;
+		for (int32_t y(1); y < height - 1; ++y) {
+			for (int32_t x(1); x < width - 1; ++x) {
+				WorldCell& cell = cells[x + y * width];
+				if (cell.food && !cell.wall) {
+					cell.food_scent = 1.0f;
+					continue;
+				}
+				const float best = std::max(
+					std::max(cells[x - 1 + y * width].food_scent, cells[x + 1 + y * width].food_scent),
+					std::max(cells[x + (y - 1) * width].food_scent, cells[x + (y + 1) * width].food_scent));
+				float fade = air_scent_fade;
+				if (cell.wall) {
+					fade = (cell.wall == WorldCell::wall_dirt) ? dirt_scent_fade : rock_scent_fade;
+				}
+				cell.food_scent = best * fade;
+			}
 		}
 	}
 

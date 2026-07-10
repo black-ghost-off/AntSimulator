@@ -71,7 +71,18 @@ struct ColonyStats : public GUI::NamedContainer
 
     void update() override
     {
-        population_label->setText(toStr(colony->ants.size()));
+        const auto total    = to<uint32_t>(colony->ants.size());
+        const auto soldiers = colony->soldiersCount();
+        const auto queens   = colony->queen_alive ? 1u : 0u;
+        const auto workers  = total - soldiers - queens;
+        std::string text = toStr(total)
+            + " [W " + toStr(workers)
+            + " | S " + toStr(soldiers)
+            + "] F " + toStr(to<uint32_t>(colony->base.food));
+        if (colony->base.atWar()) {
+            text += " WAR:" + toStr(to<int32_t>(colony->base.war_target));
+        }
+        population_label->setText(text);
     }
 
 //    void render(sf::RenderTarget& target) override

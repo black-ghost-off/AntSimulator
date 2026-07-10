@@ -35,7 +35,13 @@ struct AntUpdater
 		}
 		// Refill if too weak
 		if (ant.autonomy > 0.75f * ant.max_autonomy) {
-			ant.phase = Mode::Refill;
+			if (ant.phase == Mode::Raid) {
+				// Exhausted raiders head back home, keeping any stolen larva
+				ant.raid_returning = true;
+			}
+			else {
+				ant.phase = Mode::Refill;
+			}
 		}
 		// Specific updates
 		if (ant.type == Ant::Type::Worker) {

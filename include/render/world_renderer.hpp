@@ -13,6 +13,7 @@ struct WorldRenderer : public AsyncRenderer
 	const Grid<WorldCell>& grid;
 	bool draw_markers       = false;
 	bool draw_density       = false;
+	bool draw_scent         = false;
 	bool draw_to_enemies    = false;
 	int64_t selected_colony = -1;
 
@@ -59,7 +60,10 @@ struct WorldRenderer : public AsyncRenderer
 				const auto& cell = grid.getCst(sf::Vector2i(x, y));
 				sf::Color color = sf::Color::Black;
 				if (!cell.food && !cell.wall) {
-                    if (draw_density) {
+                    if (draw_scent) {
+                        drawScentOne(i, cell, va, color);
+                    }
+                    else if (draw_density) {
                         drawDensityOne(i, cell, va, color);
                     }
                     else if (selected_colony != -1) {
@@ -81,9 +85,16 @@ struct WorldRenderer : public AsyncRenderer
 					va[4 * i + 3].texCoords = sf::Vector2f(100.0f + food_offset, 100.0f - food_offset);
 				}
 				else if (cell.wall) {
-					const sf::Color base = Conf::WALL_COLOR;
+					const sf::Color base = (cell.wall == WorldCell::wall_dirt) ? Conf::DIRT_COLOR : Conf::WALL_COLOR;
 					const float ratio = std::min(2.0f, 0.5f + cell.wall_dist);
-					color = vec3ToColor(sf::Vector3f(base.r * ratio, base.g * ratio, base.b * ratio));
+					sf::Vector3f col_v(base.r * ratio, base.g * ratio, base.b * ratio);
+					if (draw_scent) {
+						// Show the scent seeping through the walls
+						const float s = cell.food_scent;
+						col_v.x += 255.0f * s;
+						col_v.y += 160.0f * s;
+					}
+					color = vec3ToColor(col_v);
 					va[4 * i + 0].texCoords = sf::Vector2f(200.0f + offset, offset);
 					va[4 * i + 1].texCoords = sf::Vector2f(300.0f - offset, offset);
 					va[4 * i + 2].texCoords = sf::Vector2f(300.0f - offset, 100.0f - offset);
@@ -140,6 +151,17 @@ struct WorldRenderer : public AsyncRenderer
         const sf::Color c_color = colonies_color[selected_colony];
         const float ratio = cell.density;
         color = vec3ToColor(sf::Vector3f{4.0f * ratio, ratio, ratio});
+        va[4 * i + 0].texCoords = sf::Vector2f(200.0f + offset, offset);
+        va[4 * i + 1].texCoords = sf::Vector2f(300.0f - offset, offset);
+        va[4 * i + 2].texCoords = sf::Vector2f(300.0f - offset, 100.0f - offset);
+        va[4 * i + 3].texCoords = sf::Vector2f(200.0f + offset, 100.0f - offset);
+    }
+
+    // Warm glow showing how far the food smell carries
+    void drawScentOne(uint64_t i, const WorldCell& cell, sf::VertexArray& va, sf::Color& color) const
+    {
+        const float s = cell.food_scent;
+        color = vec3ToColor(sf::Vector3f{255.0f * s, 160.0f * s, 20.0f * s});
         va[4 * i + 0].texCoords = sf::Vector2f(200.0f + offset, offset);
         va[4 * i + 1].texCoords = sf::Vector2f(300.0f - offset, offset);
         va[4 * i + 2].texCoords = sf::Vector2f(300.0f - offset, 100.0f - offset);

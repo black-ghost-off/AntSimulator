@@ -96,6 +96,12 @@ struct EditorScene : public GUI::Scene
         // Add colonies edition tools
         auto colonies = create<ColonyCreator>(simulation, control_state);
         toolbox->addItem(colonies);
+        // Auto generate a random world (rocks, plants) with a few colonies
+        simulation.generateWorld();
+        const uint32_t colonies_to_create = std::min(Conf::START_COLONIES_COUNT, Conf::MAX_COLONIES_COUNT);
+        for (const sf::Vector2f& spot : WorldGenerator::findColonySpots(simulation.world, colonies_to_create)) {
+            colonies->createColonyAt(spot);
+        }
         // Add time controls
         auto time_controls = create<TimeController>();
         watch(time_controls, [this, time_controls](){
@@ -122,6 +128,7 @@ struct EditorScene : public GUI::Scene
         renderer->simulation.renderer.render_ants        = display_controls->draw_ants;
         renderer->simulation.world.renderer.draw_markers = display_controls->draw_markers;
         renderer->simulation.world.renderer.draw_density = display_controls->draw_density;
+        renderer->simulation.world.renderer.draw_scent   = display_controls->draw_scent;
     }
 
     void setBrushSize(float size)

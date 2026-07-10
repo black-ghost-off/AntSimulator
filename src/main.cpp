@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <list>
 #include <fstream>
+#include <chrono>
 #include "simulation/config.hpp"
 #include "simulation/world/distance_field_builder.hpp"
 #include "simulation/simulation.hpp"
@@ -17,6 +18,11 @@ int main()
     }
 
     RNGf::initialize();
+    // Time based seed so each run generates a different world
+    const auto seed = static_cast<uint64_t>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    RNGf::setSeed(seed);
+    std::cout << "World seed: " << seed << std::endl;
 
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 4;

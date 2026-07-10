@@ -4,12 +4,59 @@
 
 struct SoldierUpdater
 {
+	// Soldiers guard the nest: without a war they patrol around it
+	static constexpr float patrol_radius = 120.0f;
+
 	static void update(Ant& ant, World& world, float dt)
 	{
 		WorldCell& cell = world.map.get(ant.position);
 		cell.addPresence();
+		// Raiding soldiers march straight to their objective
+		if (ant.phase == Mode::Raid) {
+			updateRaid(ant, world, dt);
+			return;
+		}
 		if (ant.direction_update.updateAutoReset(dt)) {
 			findMarker(ant, world);
+			keepAroundHome(ant);
+		}
+	}
+
+	// Guards stay tethered to the nest unless chasing something
+	static void keepAroundHome(Ant& ant)
+	{
+		if (ant.fight_mode != FightMode::NoFight || ant.phase != Mode::ToEnemy) {
+			return;
+		}
+		const sf::Vector2f to_home = ant.home_position - ant.position;
+		const float dist = getLength(to_home);
+		if (dist > patrol_radius) {
+			ant.direction = getAngle(to_home / dist);
+		}
+	}
+
+	// March toward the enemy nest (or back home), engaging any enemy on the way
+	static void updateRaid(Ant& ant, World& world, float dt)
+	{
+		if (ant.direction_update.updateAutoReset(dt)) {
+			const sf::Vector2f objective = ant.raid_returning ? ant.home_position : ant.raid_target;
+			const sf::Vector2f to_objective = objective - ant.position;
+			const float dist = getLength(to_objective);
+			if (dist > 1.0f) {
+				ant.direction = getAngle(to_objective / dist);
+				ant.direction += RNGf::getFullRange(PI * 0.1f);
+			}
+			// Attack enemies crossed on the way, but never drop a stolen larva
+			if (!ant.has_grub) {
+				WorldCell* cell = world.map.getSafe(ant.position);
+				if (cell) {
+					const AntRef enemy = cell->getEnemy(ant.col_id);
+					if (enemy.active) {
+						ant.request_fight(enemy);
+						ant.detectEnemy();
+					}
+				}
+			}
 		}
 	}
 

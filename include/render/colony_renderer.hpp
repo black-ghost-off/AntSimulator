@@ -203,6 +203,28 @@ struct ColonyRenderer
 		circle.setFillColor(colony.ants_color);
 		target.draw(circle, states);
 
+		// Draw grubs (larvae) inside the nest
+		constexpr float grub_radius = 2.0f;
+		sf::CircleShape grub_shape(grub_radius);
+		grub_shape.setOrigin(grub_radius, grub_radius);
+		grub_shape.setFillColor(sf::Color(255, 250, 220));
+		for (const Grub& g : colony.grubs) {
+			grub_shape.setPosition(g.position);
+			target.draw(grub_shape, states);
+		}
+
+		// Highlight the queen
+		if (colony.queen_alive) {
+			constexpr float queen_ring_radius = 8.0f;
+			sf::CircleShape queen_ring(queen_ring_radius);
+			queen_ring.setOrigin(queen_ring_radius, queen_ring_radius);
+			queen_ring.setPosition(colony.queen_position);
+			queen_ring.setFillColor(sf::Color::Transparent);
+			queen_ring.setOutlineThickness(1.0f);
+			queen_ring.setOutlineColor(sf::Color::White);
+			target.draw(queen_ring, states);
+		}
+
 		CircularGauge food_gauge(colony.base.position, 12.0f, 17.0f, sf::Color::White);
 		food_gauge.max_value = colony.base.max_food;
 		food_gauge.current_value = colony.base.food;

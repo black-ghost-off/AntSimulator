@@ -26,7 +26,17 @@ struct WorkerUpdater
 			auto* cell                   = world.map.getSafe(ant.position + distance * to_marker);
 			const HitPoint hit_result    = world.map.getFirstHit(ant.position, to_marker, distance);
 			// Check cell
-			if (!cell || hit_result.cell) {
+			if (!cell) {
+				continue;
+			}
+			// Smell the food scent, even through walls: the scent field is
+			// already attenuated by them, a faint trace hints where to dig
+			if (marker_phase == Mode::ToFood && cell->food_scent > result.max_scent) {
+				result.max_scent       = cell->food_scent;
+				result.scent_direction = to_marker;
+			}
+			// Everything else requires a line of sight
+			if (hit_result.cell) {
 				continue;
 			}
 			// Check for food or colony
@@ -84,13 +94,27 @@ struct WorkerUpdater
 			result.repellent_cell->getRepellent(ant.col_id) *= 0.95f;
 		}
 
-        // Update direction
+        // Update direction: blend the pheromone track direction with the
+        // pull of the food smell. The scent constantly bends the path of
+        // food searching ants toward it, stronger the closer the food is.
+		constexpr float scent_attraction = 2.0f;
+		constexpr float scent_threshold  = 0.05f;
+		sf::Vector2f steering{0.0f, 0.0f};
 		if (result.max_intensity) {
 			// Slowly degrade the track to accelerate its dissipation
 			if (RNGf::proba(0.2f) && ant.phase == Mode::ToFood) {
 				result.max_cell->degrade(ant.col_id, ant.phase, 0.99f);
 			}
-			ant.direction = getAngle(result.max_direction);
+			steering = result.max_direction;
+		}
+		if (!result.found_permanent && ant.phase == Mode::ToFood && result.max_scent > scent_threshold) {
+			// Both directions are unit vectors: near food the smell overrides
+			// the markers, far away it only gently bends the trajectory.
+			// Walls don't stop it, ants will dig toward the smell.
+			steering += (scent_attraction * result.max_scent) * result.scent_direction;
+		}
+		if (steering.x != 0.0f || steering.y != 0.0f) {
+			ant.direction = getAngle(steering);
 		}
 	}
 

@@ -10,7 +10,9 @@ enum class Mode : uint32_t
 	Refill       = 3,
 	Flee         = 4,
 	ToHomeNoFood = 5,
-    Dead         = 6
+    Dead         = 6,
+	// War: marching on an enemy colony to raid it
+	Raid         = 7
 };
 
 enum class FightMode

@@ -1,4 +1,6 @@
 #pragma once
+#include <atomic>
+#include <cstdint>
 #include <random>
 
 
@@ -11,6 +13,12 @@ protected:
 	NumberGenerator()
 		: gen(0)
 	{}
+
+public:
+	void seed(uint64_t seed_value)
+	{
+		gen.seed(static_cast<std::mt19937::result_type>(seed_value));
+	}
 };
 
 
@@ -58,42 +66,65 @@ template<typename T>
 class RNG
 {
 private:
-	static RealNumberGenerator<T>* gen;
+	static uint64_t base_seed;
+	static std::atomic<uint32_t> instance_count;
+
+	// Each thread owns its generator so random numbers can be produced
+	// concurrently without locking. Every generator gets a distinct
+	// sequence derived from the base seed.
+	static RealNumberGenerator<T>& instance()
+	{
+		static thread_local RealNumberGenerator<T> gen = createGenerator();
+		return gen;
+	}
+
+	static RealNumberGenerator<T> createGenerator()
+	{
+		RealNumberGenerator<T> g;
+		g.seed(base_seed + 0x9E3779B97F4A7C15ull * instance_count.fetch_add(1));
+		return g;
+	}
 
 public:
     static void initialize()
     {
-        gen = new RealNumberGenerator<T>();
+        // Kept for compatibility, generators are created lazily per thread
     }
+
+	static void setSeed(uint64_t seed_value)
+	{
+		base_seed = seed_value;
+		instance().seed(seed_value);
+	}
 
 	static T get()
 	{
-		return gen->get();
+		return instance().get();
 	}
 
 	static float getUnder(T max)
 	{
-		return gen->getUnder(max);
+		return instance().getUnder(max);
 	}
 
 	static uint64_t getUintUnder(uint64_t max)
 	{
-		return static_cast<uint64_t>(gen->getUnder(static_cast<float>(max) + 1.0f));
+		return static_cast<uint64_t>(instance().getUnder(static_cast<float>(max) + 1.0f));
 	}
 
 	static float getRange(T min, T max)
 	{
-		return gen->getRange(min, max);
+		return instance().getRange(min, max);
 	}
 
 	static float getRange(T width)
 	{
-		return gen->getRange(width);
+		return instance().getRange(width);
 	}
 
 	static float getFullRange(T width)
 	{
-		return gen->getRange(static_cast<T>(2.0f) * width);
+		return instance().getRange(static_cast<T>(2.0f) * width);
 	}
 
 	static bool proba(float threshold)
@@ -105,7 +136,10 @@ public:
 using RNGf = RNG<float>;
 
 template<typename T>
-RealNumberGenerator<T>* RNG<T>::gen = nullptr;
+uint64_t RNG<T>::base_seed = 0;
+
+template<typename T>
+std::atomic<uint32_t> RNG<T>::instance_count{0};
 
 
 template<typename T>

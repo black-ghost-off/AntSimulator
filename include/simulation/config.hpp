@@ -13,6 +13,7 @@ struct DefaultConf
 	const static sf::Color TO_HOME_COLOR;
 	const static sf::Color COLONY_COLOR;
 	const static sf::Color WALL_COLOR;
+	const static sf::Color DIRT_COLOR;
 	static float COLONY_SIZE;
 	static float MARKER_INTENSITY;
 	static sf::Vector2f COLONY_POSITION;
@@ -23,7 +24,9 @@ struct DefaultConf
 	static uint32_t ANTS_COUNT;
 	static std::shared_ptr<sf::Texture> ANT_TEXTURE;
 	static std::shared_ptr<sf::Texture> MARKER_TEXTURE;
-    static constexpr uint32_t MAX_COLONIES_COUNT = 4;
+    static constexpr uint32_t MAX_COLONIES_COUNT = 5;
+    // Number of colonies auto created at startup (capped by MAX_COLONIES_COUNT)
+    static constexpr uint32_t START_COLONIES_COUNT = 5;
 	static sf::Color COLONY_COLORS[MAX_COLONIES_COUNT];
     static uint32_t USE_FULLSCREEN;
     static float GUI_SCALE;
@@ -96,17 +99,19 @@ const sf::Color DefaultConf<T>::COLONY_COLOR = DefaultConf<T>::ANT_COLOR;
 template<typename T>
 const sf::Color DefaultConf<T>::WALL_COLOR = sf::Color(114, 107, 107);
 template<typename T>
+const sf::Color DefaultConf<T>::DIRT_COLOR = sf::Color(126, 96, 64);
+template<typename T>
 uint32_t DefaultConf<T>::WIN_WIDTH = 1920;
 template<typename T>
 uint32_t DefaultConf<T>::WIN_HEIGHT = 1080;
 template<typename T>
 uint32_t DefaultConf<T>::WORLD_WIDTH = 1920;
 template<typename T>
-uint32_t DefaultConf<T>::WORLD_HEIGHT = 1080;
+uint32_t DefaultConf<T>::WORLD_HEIGHT = 1920;
 template<typename T>
-uint32_t DefaultConf<T>::ANTS_COUNT = 3000;
+uint32_t DefaultConf<T>::ANTS_COUNT = 10000;
 template<typename T>
-float DefaultConf<T>::COLONY_SIZE = 20.0f;
+float DefaultConf<T>::COLONY_SIZE = 10.0f;
 template<typename T>
 float DefaultConf<T>::MARKER_INTENSITY = 8000.0f;
 template<typename T>
@@ -117,7 +122,7 @@ std::shared_ptr<sf::Texture> DefaultConf<T>::ANT_TEXTURE;
 template<typename T>
 std::shared_ptr<sf::Texture> DefaultConf<T>::MARKER_TEXTURE;
 template<typename T>
-sf::Color DefaultConf<T>::COLONY_COLORS[MAX_COLONIES_COUNT] = {sf::Color::Red, sf::Color::Blue, sf::Color::Yellow, sf::Color(50, 255, 255)};
+sf::Color DefaultConf<T>::COLONY_COLORS[MAX_COLONIES_COUNT] = {sf::Color::Red, sf::Color::Blue, sf::Color::Yellow, sf::Color(50, 255, 255), sf::Color(255, 130, 0)};
 
 template<typename T>
 uint32_t DefaultConf<T>::USE_FULLSCREEN = 1;

@@ -56,11 +56,11 @@ struct Scene
     
     void processKeyPressed(const sf::Event& e)
     {
-        if (e.key.code == sf::Keyboard::Escape) {
-            window.close();
-        } else {
-            root.executeCallback(e);
-        }
+        // if (e.key.code == sf::Keyboard::Escape) {
+        //     window.close();
+        // } else {
+        //     root.executeCallback(e);
+        // }
     }
     
     void processEvents()

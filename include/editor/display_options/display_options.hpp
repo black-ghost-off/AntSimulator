@@ -12,6 +12,7 @@ struct DisplayOption : public GUI::NamedContainer
     bool draw_ants    = false;
     bool draw_markers = false;
     bool draw_density = false;
+    bool draw_scent   = false;
 
     explicit
     DisplayOption(ControlState& control_state_)
@@ -31,23 +32,38 @@ struct DisplayOption : public GUI::NamedContainer
         GUI::NamedContainer::addItem(markers);
         auto density = create<GUI::NamedToggle>("Draw Density");
         GUI::NamedContainer::addItem(density);
+        auto scent = create<GUI::NamedToggle>("Draw Food Scent");
+        GUI::NamedContainer::addItem(scent);
 
-        watch(markers, [this, markers, density](){
+        auto update_states = [this, markers, density, scent](){
+            draw_markers = markers->getState();
+            draw_density = density->getState();
+            draw_scent   = scent->getState();
+            notifyChanged();
+        };
+
+        watch(markers, [markers, density, scent, update_states](){
             if (markers->getState()) {
                 density->setState(false);
+                scent->setState(false);
             }
-            draw_markers = markers->getState();
-            draw_density = density->getState();
-            notifyChanged();
+            update_states();
         });
 
-        watch(density, [this, markers, density](){
+        watch(density, [markers, density, scent, update_states](){
             if (density->getState()) {
                 markers->setState(false);
+                scent->setState(false);
             }
-            draw_markers = markers->getState();
-            draw_density = density->getState();
-            notifyChanged();
+            update_states();
+        });
+
+        watch(scent, [markers, density, scent, update_states](){
+            if (scent->getState()) {
+                markers->setState(false);
+                density->setState(false);
+            }
+            update_states();
         });
     }
 };

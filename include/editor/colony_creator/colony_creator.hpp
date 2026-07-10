@@ -33,8 +33,13 @@ struct ColonyCreator : public GUI::NamedContainer
 
     void createColony()
     {
+        createColonyAt({50.0f, 50.0f});
+    }
+
+    void createColonyAt(sf::Vector2f position)
+    {
         if (this->colonies_count < Conf::MAX_COLONIES_COUNT) {
-            auto new_colony = simulation.createColony(50.0f, 50.0f);
+            auto new_colony = simulation.createColony(position.x, position.y);
             auto colony_tool = create<ColonyTool>(new_colony, control_state);
             colony_tool->on_select = [this](int8_t id){
                 select(id);
